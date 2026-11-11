@@ -4,7 +4,7 @@
   <img src="assets/token_widget.png" width="160" alt="Kimi Token Usage icon">
 </p>
 
-A standalone Windows desktop pet that shows your Kimi Code token usage. A cute hand-drawn pixel kitten walks along your taskbar at **35 FPS**, has a life of its own, and occasionally thinks about random AI facts.
+A standalone Windows desktop pet that shows your Kimi Code token usage. A cute pixel kitten walks along your taskbar at **35 FPS**, sits, lies down, sleeps, and occasionally thinks about random AI facts.
 
 ## Download
 
@@ -25,19 +25,19 @@ The app installs only for the current Windows user and does not require administ
 
 ## Your desktop companion
 
-- Hand-drawn pixel-art with soft coat-colored outlines and detailed shading.
-- A subtle stepping walk cycle plays at **35 frames per second** while walking.
-- Choose **Luna** (white/silver), **Mochi** (ginger), **Smokey** (grey), or **Coco** (chocolate) from the right-click menu.
-- The cat turns to face its walking direction and has separate sitting, sleeping, and pickup expressions.
+- Artist-drawn walking poses with coordinated legs and smooth body bobbing at **35 FPS**.
+- Animated sitting and sleeping states, plus a separate lying-down state.
+- Choose **Luna** (white), **Mochi** (golden), **Smokey** (black), or **Coco** (brown) from the right-click menu.
+- The cat turns to face its walking direction and alternates naturally between activities.
 - Hover over the cat to see your total AI token usage. The bubble disappears when you move the pointer away.
 - Drag gently to pick the cat up; release to place it back on the taskbar.
 - Click the cat to pet it, or double-click to refresh its token total.
-- Right-click for appearance choices, snacks, games, sleep mode, taskbar walking, always-on-top, and refresh controls.
+- Right-click for appearance choices, snacks, games, laying down, sleep mode, taskbar walking, always-on-top, and refresh controls.
 - Press **Escape** to close the app.
 
 ## Resource use
 
-Walking and actions animate at 35 FPS. Resting and sleeping use much slower updates. Token usage refreshes in the background every 60 seconds instead of continuously reading session data. Pixel-art frames are tiny and loaded on demand, so no 3D engine or video player runs in the background.
+Walking and actions animate at 35 FPS. Sitting, laying, and sleeping use slower updates. Token usage refreshes in the background every 60 seconds instead of continuously reading session data. Pixel-art frames are tiny and loaded on demand, so no 3D engine or video player runs in the background.
 
 The total includes regular input, cached input, cache creation, and output tokens across saved Kimi Code sessions.
 
@@ -71,16 +71,18 @@ winget install --id JRSoftware.InnoSetup --exact
 
 ## Cat artwork
 
-The base **Pixel art cat** was created by **scofanogd** and released under **CC0**. Color variants, walk-cycle movement, expressions, and app-specific framing were created for this project while preserving the original shading and proportions.
+**[LPC] Cats and Dogs** by **bluecarrot16**, licensed under **CC-BY 3.0**. The pack includes four cat colors, coordinated walking animations, and sleeping/eating frames. App-specific frame timing, body motion, and behavior states were added for this project.
 
-Source: https://opengameart.org/content/pixel-cat
+Source: https://opengameart.org/content/lpc-cats-and-dogs
 
-License: https://creativecommons.org/publicdomain/zero/1.0/
+License: https://creativecommons.org/licenses/by/3.0/
+
+The artwork credit and source link are also available from the app's right-click menu.
 
 ## Source layout
 
 - `src/token_widget.py`: the animated desktop pet and its interactions.
 - `src/token_usage.py`: local session discovery and token calculations.
-- `assets/cats/`: recolored pixel-art walk cycles and expressions in both directions.
+- `assets/cats/`: LPC pixel-art walk cycles, animated sitting/sleeping frames, and lying poses in both directions.
 - `assets/`: the app icon.
 - `installer/`: Windows installer and executable version metadata.

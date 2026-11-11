@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import tkinter as tk
+import webbrowser
 from pathlib import Path
 from tkinter import font
 
@@ -181,9 +182,14 @@ class TokenWidget:
         self.menu.add_checkbutton(label="Walk on the taskbar", variable=self.wandering, command=self.toggle_wandering)
         self.menu.add_command(label="Give a snack", command=self.feed)
         self.menu.add_command(label="Play together", command=self.play)
+        self.menu.add_command(label="Lay down / stand up", command=self.toggle_lay)
         self.menu.add_command(label="Sleep / wake up", command=self.toggle_sleep)
         self.menu.add_command(label="Refresh now", command=self.manual_refresh)
         self.menu.add_separator()
+        self.menu.add_command(
+            label="Artwork: bluecarrot16 (CC-BY 3.0)",
+            command=lambda: webbrowser.open("https://opengameart.org/content/lpc-cats-and-dogs"),
+        )
         self.menu.add_command(label="Close", command=self.close)
         root.bind_all("<Button-3>", self.show_menu)
         root.bind("<Escape>", lambda event: self.close())
@@ -200,7 +206,10 @@ class TokenWidget:
     def get_frame(self, appearance, direction, index, pose="walk"):
         key = (appearance, direction, pose, index)
         if key not in self.frame_cache:
-            filename = f"walk_{index:03d}.png" if pose == "walk" else f"{pose}.png"
+            if pose in ("walk", "sit", "sleep"):
+                filename = f"{pose}_{index:03d}.png"
+            else:
+                filename = f"{pose}.png"
             path = resource_path(Path("cats") / appearance / direction / filename)
             self.frame_cache[key] = tk.PhotoImage(file=str(path))
         return self.frame_cache[key]
@@ -266,8 +275,8 @@ class TokenWidget:
             self.behavior = "sit"
             self.behavior_until = now + 10
             return
-        self.behavior = random.choices(("walk", "sit", "sleep"), weights=(5, 4, 1))[0]
-        durations = {"walk": (6, 13), "sit": (5, 11), "sleep": (8, 16)}
+        self.behavior = random.choices(("walk", "sit", "lay", "sleep"), weights=(5, 3, 2, 1))[0]
+        durations = {"walk": (6, 13), "sit": (5, 11), "lay": (6, 12), "sleep": (8, 16)}
         self.behavior_until = now + random.uniform(*durations[self.behavior])
         if self.behavior == "walk":
             self.target_x = self.random_target()
@@ -346,10 +355,18 @@ class TokenWidget:
             mood = "normal"
 
         walking = self.behavior == "walk" and self.wandering.get() and not self.hovering and not sleepy and not self.action and not self.dragging
+        lying = self.behavior == "lay" and not sleepy
         if walking:
             self.walk_phase = (self.walk_phase + elapsed) % 1
-        frame_index = int(self.walk_phase * WALK_FPS) % WALK_FPS if walking else 0
-        pose = "walk" if walking else "grabbed" if mood == "grabbed" else "sleep" if sleepy else "sit"
+        pose = "walk" if walking else "grabbed" if mood == "grabbed" else "sleep" if sleepy else "lay" if lying else "sit"
+        if walking:
+            frame_index = int(self.walk_phase * WALK_FPS) % WALK_FPS
+        elif pose == "sit":
+            frame_index = int(now * 3) % 4
+        elif pose == "sleep":
+            frame_index = int(now * 1.5) % 4
+        else:
+            frame_index = 0
         action_progress = 1 - (self.action_until - now) / self.action_duration if self.action else 0
 
         self.canvas.delete("all")
@@ -381,6 +398,8 @@ class TokenWidget:
         self.hovering = hovering
         if hovering:
             self.sleeping = False
+            if self.behavior in ("lay", "sleep"):
+                self.behavior = "sit"
 
     def select_appearance(self, appearance):
         self.appearance.set(appearance)
@@ -395,6 +414,12 @@ class TokenWidget:
 
     def play(self):
         self.start_action("play", 3)
+
+    def toggle_lay(self):
+        self.behavior = "sit" if self.behavior == "lay" else "lay"
+        self.sleeping = False
+        self.action = None
+        self.behavior_until = time.monotonic() + 10
 
     def toggle_sleep(self):
         self.sleeping = not self.sleeping
