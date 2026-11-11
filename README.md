@@ -4,7 +4,7 @@
   <img src="assets/token_widget.png" width="160" alt="Kimi Token Usage icon">
 </p>
 
-A standalone Windows desktop pet that shows your Kimi Code token usage. A cute pixel-art cat walks along your taskbar at **35 FPS**, has a life of its own, and occasionally thinks about random AI facts.
+A standalone Windows desktop pet that shows your Kimi Code token usage. A cute hand-drawn pixel kitten walks along your taskbar at **35 FPS**, has a life of its own, and occasionally thinks about random AI facts.
 
 ## Download
 
@@ -25,10 +25,10 @@ The app installs only for the current Windows user and does not require administ
 
 ## Your desktop companion
 
-- Original pixel-art sprites with chunky outlines, curled tails, collars, and expressive poses.
-- A four-legged walk cycle plays at **35 distinct frames per second** while walking.
+- Hand-drawn pixel-art with soft coat-colored outlines and detailed shading.
+- A subtle stepping walk cycle plays at **35 frames per second** while walking.
 - Choose **Luna** (white/silver), **Mochi** (ginger), **Smokey** (grey), or **Coco** (chocolate) from the right-click menu.
-- The cat turns to face its walking direction and has separate walking, sitting, sleeping, and pickup poses.
+- The cat turns to face its walking direction and has separate sitting, sleeping, and pickup expressions.
 - Hover over the cat to see your total AI token usage. The bubble disappears when you move the pointer away.
 - Drag gently to pick the cat up; release to place it back on the taskbar.
 - Click the cat to pet it, or double-click to refresh its token total.
@@ -69,10 +69,18 @@ To install Inno Setup with Windows Package Manager:
 winget install --id JRSoftware.InnoSetup --exact
 ```
 
+## Cat artwork
+
+The base **Pixel art cat** was created by **scofanogd** and released under **CC0**. Color variants, walk-cycle movement, expressions, and app-specific framing were created for this project while preserving the original shading and proportions.
+
+Source: https://opengameart.org/content/pixel-cat
+
+License: https://creativecommons.org/publicdomain/zero/1.0/
+
 ## Source layout
 
 - `src/token_widget.py`: the animated desktop pet and its interactions.
 - `src/token_usage.py`: local session discovery and token calculations.
-- `assets/cats/`: original transparent pixel-art walk cycles and poses in both directions.
+- `assets/cats/`: recolored pixel-art walk cycles and expressions in both directions.
 - `assets/`: the app icon.
 - `installer/`: Windows installer and executable version metadata.
