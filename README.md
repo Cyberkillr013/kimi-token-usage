@@ -28,7 +28,7 @@ The app installs only for the current Windows user and does not require administ
 - Artist-drawn walking poses with coordinated legs and smooth body bobbing at **35 FPS**.
 - Animated sitting and sleeping states, plus a separate lying-down state.
 - Choose **Luna** (white), **Mochi** (golden), **Smokey** (black), or **Coco** (brown) from the right-click menu.
-- The cat turns to face its walking direction and alternates naturally between activities.
+- The cat turns to face its walking direction and alternates naturally between activities, with its paws and resting body aligned to the taskbar surface.
 - AI facts appear in a white pixel-cloud thought bubble that grows from a small puff to a larger puff and then the full cloud. Choose **Think of an AI fact** in the menu to trigger it manually.
 - Hover over the cat to see your total AI token usage. The bubble disappears when you move the pointer away.
 - Drag gently to pick the cat up; release to place it back on the taskbar.

@@ -77,7 +77,7 @@ def taskbar_geometry():
                 floor = app_bar.rc.top
     minimum_x = work_area.left + 8
     maximum_x = max(minimum_x, work_area.right - WINDOW_WIDTH - 8)
-    return floor - 182, minimum_x, maximum_x
+    return floor - 175, minimum_x, maximum_x
 
 
 def draw_bubble(canvas, text, usage_font, fact_font, usage=False):
