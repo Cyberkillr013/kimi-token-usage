@@ -1,5 +1,6 @@
 import argparse
-import math
+import ctypes
+import json
 import os
 import queue
 import random
@@ -12,121 +13,102 @@ from tkinter import font
 
 from token_usage import collect_sessions, summarize
 
+WINDOW_WIDTH = 240
+WINDOW_HEIGHT = 190
+TRANSPARENT = "#010203"
+WALK_FPS = 35
 
-def star_points(center_x, center_y, outer_radius, inner_radius=None):
-    inner_radius = inner_radius or outer_radius * 0.45
-    points = []
-    for index in range(10):
-        angle = -math.pi / 2 + index * math.pi / 5
-        radius = outer_radius if index % 2 == 0 else inner_radius
-        points.extend((center_x + math.cos(angle) * radius, center_y + math.sin(angle) * radius))
-    return points
+CATS = {
+    "luna": "Luna · silver tabby",
+    "mochi": "Mochi · ginger tabby",
+    "smokey": "Smokey · blue-black cat",
+    "coco": "Coco · chocolate tabby",
+}
 
-
-def draw_avatar(canvas, look_x=0, look_y=0, blink=False, mood="normal", heart_offset=None, action_progress=0):
-    purple = "#8b7cff"
-    light_purple = "#b9b0ff"
-    face = "#c9c2ff"
-    dark = "#28223f"
-    pink = "#ff9ebd"
-    gold = "#ffe59a"
-    happy = mood in ("happy", "pet", "snack", "play", "excited")
-
-    canvas.create_polygon(12, 21, 16, 5, 29, 16, fill=purple, outline=light_purple, width=2)
-    canvas.create_polygon(36, 16, 49, 5, 53, 22, fill=purple, outline=light_purple, width=2)
-    canvas.create_polygon(16, 15, 18, 9, 24, 15, fill=pink, outline="")
-    canvas.create_polygon(41, 15, 47, 9, 49, 16, fill=pink, outline="")
-    canvas.create_oval(7, 10, 57, 60, fill=purple, outline=light_purple, width=2)
-    canvas.create_oval(14, 20, 50, 55, fill=face, outline="")
-
-    canvas.create_polygon(star_points(32, 20, 6, 2.4), fill=gold, outline="")
-    canvas.create_polygon(star_points(54, 8, 5, 1.8), fill=gold, outline="")
-    canvas.create_oval(3, 32, 6, 35, fill=gold, outline="")
-
-    if mood == "grabbed":
-        canvas.create_line(20, 30, 25, 32, 20, 34, fill=dark, width=2)
-        canvas.create_line(44, 30, 39, 32, 44, 34, fill=dark, width=2)
-    elif mood == "sleepy":
-        canvas.create_line(20, 31, 23, 33, 26, 31, fill=dark, width=2, smooth=True)
-        canvas.create_line(38, 31, 41, 33, 44, 31, fill=dark, width=2, smooth=True)
-    elif mood in ("play", "excited"):
-        canvas.create_polygon(star_points(23, 32, 4.5, 1.8), fill=dark, outline="")
-        canvas.create_polygon(star_points(41, 32, 4.5, 1.8), fill=dark, outline="")
-    elif happy:
-        canvas.create_line(20, 33, 23, 30, 26, 33, fill=dark, width=2, smooth=True)
-        canvas.create_line(38, 33, 41, 30, 44, 33, fill=dark, width=2, smooth=True)
-    elif blink:
-        canvas.create_line(21, 32, 26, 32, fill=dark, width=2)
-        canvas.create_line(38, 32, 43, 32, fill=dark, width=2)
-    else:
-        canvas.create_oval(21 + look_x, 29 + look_y, 26 + look_x, 35 + look_y, fill=dark, outline="")
-        canvas.create_oval(38 + look_x, 29 + look_y, 43 + look_x, 35 + look_y, fill=dark, outline="")
-        canvas.create_oval(22 + look_x, 30 + look_y, 24 + look_x, 32 + look_y, fill="white", outline="")
-        canvas.create_oval(39 + look_x, 30 + look_y, 41 + look_x, 32 + look_y, fill="white", outline="")
-
-    canvas.create_oval(16, 38, 23, 42, fill=pink, outline="")
-    canvas.create_oval(41, 38, 48, 42, fill=pink, outline="")
-    if mood == "grabbed":
-        canvas.create_oval(30, 39, 34, 44, fill=dark, outline="")
-    elif mood == "sleepy":
-        canvas.create_line(30, 42, 34, 42, fill=dark, width=2)
-    elif happy:
-        canvas.create_oval(28, 38, 36, 47, fill=dark, outline="")
-        canvas.create_oval(30, 43, 34, 46, fill=pink, outline="")
-    else:
-        canvas.create_oval(30, 36, 34, 39, fill=dark, outline="")
-        canvas.create_line(28, 40, 30, 42, 32, 43, 34, 42, 36, 40, fill=dark, width=2, smooth=True)
-
-    canvas.create_line(13, 43, 20, 42, fill=dark, width=1)
-    canvas.create_line(14, 47, 21, 44, fill=dark, width=1)
-    canvas.create_line(44, 42, 51, 43, fill=dark, width=1)
-    canvas.create_line(43, 44, 50, 47, fill=dark, width=1)
-
-    if mood == "sleepy":
-        canvas.create_text(51, 19, text="Z", fill=light_purple, font=("Segoe UI", 11, "bold"), tags="sleep")
-        canvas.create_text(58, 9, text="z", fill=gold, font=("Segoe UI", 9, "bold"), tags="sleep")
-    if mood == "snack":
-        cookie_x = 53 - action_progress * 17
-        cookie_y = 44 - action_progress * 4
-        radius = max(2.5, 6 - action_progress * 3)
-        canvas.create_oval(cookie_x - radius, cookie_y - radius, cookie_x + radius, cookie_y + radius, fill="#d99b5f", outline="#8b5737", tags="snack")
-        canvas.create_oval(cookie_x - 2, cookie_y - 2, cookie_x, cookie_y, fill="#5e3b32", outline="", tags="snack")
-        canvas.create_oval(cookie_x + 1, cookie_y + 1, cookie_x + 3, cookie_y + 3, fill="#5e3b32", outline="", tags="snack")
-    if mood == "play":
-        ball_x = 51 + math.sin(action_progress * math.pi * 4) * 5
-        ball_y = 8 + abs(math.sin(action_progress * math.pi * 5)) * 14
-        canvas.create_oval(ball_x - 5, ball_y - 5, ball_x + 5, ball_y + 5, fill=pink, outline=gold, width=2, tags="play")
-        canvas.create_line(ball_x - 4, ball_y, ball_x + 4, ball_y, fill=gold, width=2, tags="play")
-    if mood == "excited":
-        canvas.create_text(8, 17, text="✦", fill=gold, font=("Segoe UI", 12, "bold"), tags="excited")
-        canvas.create_text(56, 30, text="✦", fill=pink, font=("Segoe UI", 10, "bold"), tags="excited")
-    if heart_offset is not None:
-        canvas.create_text(53, 19 - heart_offset, text="♥", fill=pink, font=("Segoe UI", 12, "bold"), tags="pet")
-        canvas.create_text(10, 17 - heart_offset / 2, text="♥", fill=gold, font=("Segoe UI", 9, "bold"), tags="pet")
+AI_FACTS = (
+    "The word 'robot' comes from the Czech word 'robota', meaning forced labor.",
+    "The first neural network model, the perceptron, was described in 1957.",
+    "Token counts can differ between models because they split text differently.",
+    "Cached input tokens help models avoid processing the same context again.",
+    "The Turing Test was proposed by Alan Turing in 1950.",
+    "Neural networks learn by adjusting numbers called weights.",
+    "A transformer model uses attention to decide which tokens matter most.",
+    "AI can recognize patterns, but it does not experience the world like a person.",
+    "Training teaches a model patterns; inference is when it uses what it learned.",
+    "The term 'artificial intelligence' was coined at a workshop in 1956.",
+    "Embeddings turn words and other data into coordinates in a number space.",
+    "A model's context window is the amount of text it can consider at once.",
+    "Small models can sometimes outperform larger ones on specialized tasks.",
+    "Temperature controls how predictable or varied many AI responses are.",
+    "AI benchmarks measure specific skills, not the whole of intelligence.",
+)
 
 
-def transform_avatar(canvas, scale, offset_x, offset_y):
-    for item in canvas.find_all():
-        coordinates = canvas.coords(item)
-        transformed = []
-        for index in range(0, len(coordinates), 2):
-            transformed.extend((
-                32 + (coordinates[index] - 32) * scale + offset_x,
-                32 + (coordinates[index + 1] - 32) * scale + offset_y,
-            ))
-        canvas.coords(item, *transformed)
+def resource_path(relative):
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent / "assets"))
+    return base / relative
+
+
+def taskbar_geometry():
+    class Rect(ctypes.Structure):
+        _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long), ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+
+    class AppBarData(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", ctypes.c_ulong),
+            ("hWnd", ctypes.c_void_p),
+            ("uCallbackMessage", ctypes.c_uint),
+            ("uEdge", ctypes.c_uint),
+            ("rc", Rect),
+            ("lParam", ctypes.c_void_p),
+        ]
+
+    work_area = Rect()
+    ctypes.windll.user32.SystemParametersInfoW(0x0030, 0, ctypes.byref(work_area), 0)
+    floor = work_area.bottom
+    if os.name == "nt":
+        app_bar = AppBarData()
+        app_bar.cbSize = ctypes.sizeof(app_bar)
+        if ctypes.windll.shell32.SHAppBarMessage(0x00000005, ctypes.byref(app_bar)):
+            if app_bar.uEdge == 1:
+                floor = app_bar.rc.bottom
+            elif app_bar.uEdge == 3:
+                floor = app_bar.rc.top
+    minimum_x = work_area.left + 8
+    maximum_x = max(minimum_x, work_area.right - WINDOW_WIDTH - 8)
+    return floor - 182, minimum_x, maximum_x
+
+
+def draw_bubble(canvas, text, usage_font, fact_font, usage=False):
+    canvas.create_rectangle(5, 4, 235, 64, fill="#181e2b", outline="#8b7cff", width=2)
+    canvas.create_polygon(108, 64, 124, 64, 116, 72, fill="#181e2b", outline="#8b7cff")
+    canvas.create_text(
+        120,
+        33,
+        text=text,
+        fill="#f3f6fc",
+        font=usage_font if usage else fact_font,
+        width=210,
+        justify="center",
+    )
 
 
 class TokenWidget:
-    def __init__(self, root, data_root, refresh_seconds):
+    def __init__(self, root, data_root, refresh_seconds, appearance=None):
         self.root = root
         self.data_root = data_root
         self.refresh_seconds = refresh_seconds
         self.results = queue.Queue()
         self.loading = False
         self.closed = False
-        self.topmost = tk.BooleanVar(value=True)
-        self.wandering = tk.BooleanVar(value=True)
+        self.config_path = data_root / "token_widget.json"
+        self.config = self.load_config()
+        self.topmost = tk.BooleanVar(value=self.config.get("topmost", True))
+        self.wandering = tk.BooleanVar(value=self.config.get("wandering", True))
+        selected_appearance = appearance or self.config.get("appearance", "luna")
+        if selected_appearance not in CATS:
+            selected_appearance = "luna"
+        self.appearance = tk.StringVar(value=selected_appearance)
         self.hovering = False
         self.dragging = False
         self.drag_moved = False
@@ -134,50 +116,69 @@ class TokenWidget:
         self.action_until = 0
         self.action_duration = 1
         self.sleeping = False
-        now = time.monotonic()
-        self.last_interaction = now
-        self.next_blink = now + random.uniform(2, 5)
-        self.blink_until = 0
-        self.next_wander = now + 3
-        self.wander_target = None
+        self.total = "…"
+        self.fact = None
+        self.thought_until = 0
+        self.walk_phase = 0
+        self.direction = "right"
+        self.frame_cache = {}
+        self.last_geometry_x = None
 
-        self.background = "#10141f"
-        self.panel = "#181e2b"
-        self.foreground = "#f3f6fc"
+        now = time.monotonic()
+        self.last_frame = now
+        self.next_thought = now + random.uniform(12, 25)
+        self.behavior = "walk" if self.wandering.get() else "sit"
+        self.behavior_until = now + random.uniform(7, 12)
 
         root.title("Kimi Token Usage")
         root.overrideredirect(True)
-        root.attributes("-topmost", True)
-        root.configure(bg=self.background, highlightbackground="#30394d", highlightthickness=1)
+        root.attributes("-topmost", self.topmost.get())
+        root.configure(bg=TRANSPARENT, highlightthickness=0)
         root.resizable(False, False)
+        try:
+            root.attributes("-transparentcolor", TRANSPARENT)
+        except tk.TclError:
+            pass
 
-        width, height = 300, 104
-        x = max(root.winfo_screenwidth() - width - 28, 0)
-        y = max(root.winfo_screenheight() - height - 76, 0)
-        root.geometry(f"{width}x{height}+{x}+{y}")
-        self.wander_origin = (x, y)
+        self.y, self.minimum_x, self.maximum_x = taskbar_geometry()
+        self.x = self.maximum_x - 25
+        self.target_x = self.random_target()
+        root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{round(self.x)}+{self.y}")
 
-        self.total_font = font.Font(family="Segoe UI", size=20, weight="bold")
-        self.total = tk.StringVar(value="…")
-
-        main = tk.Frame(root, bg=self.panel)
-        main.pack(fill="both", expand=True, padx=7, pady=7)
-
-        self.avatar = tk.Canvas(main, width=64, height=64, bg=self.panel, highlightthickness=0, cursor="hand2")
-        self.avatar.pack(side="left", padx=(7, 13))
-        total_label = tk.Label(main, textvariable=self.total, bg=self.panel, fg=self.foreground, font=self.total_font)
-        total_label.pack(side="left", fill="x", expand=True, padx=(0, 9))
+        self.fonts = {
+            "usage": font.Font(family="Segoe UI", size=12, weight="bold"),
+            "fact": font.Font(family="Segoe UI", size=9),
+            "symbol": font.Font(family="Segoe UI", size=13, weight="bold"),
+        }
+        self.canvas = tk.Canvas(
+            root,
+            width=WINDOW_WIDTH,
+            height=WINDOW_HEIGHT,
+            bg=TRANSPARENT,
+            highlightthickness=0,
+            cursor="hand2",
+        )
+        self.canvas.pack(fill="both", expand=True)
 
         self.menu = tk.Menu(
             root,
             tearoff=False,
-            bg=self.panel,
-            fg=self.foreground,
+            bg="#181e2b",
+            fg="#f3f6fc",
             activebackground="#30394d",
-            activeforeground=self.foreground,
+            activeforeground="#f3f6fc",
         )
+        appearance_menu = tk.Menu(self.menu, tearoff=False, bg="#181e2b", fg="#f3f6fc")
+        for key, name in CATS.items():
+            appearance_menu.add_radiobutton(
+                label=name,
+                value=key,
+                variable=self.appearance,
+                command=lambda selected=key: self.select_appearance(selected),
+            )
+        self.menu.add_cascade(label="Choose your cat", menu=appearance_menu)
         self.menu.add_checkbutton(label="Always on top", variable=self.topmost, command=self.toggle_topmost)
-        self.menu.add_checkbutton(label="Wander nearby", variable=self.wandering, command=self.toggle_wandering)
+        self.menu.add_checkbutton(label="Walk on the taskbar", variable=self.wandering, command=self.toggle_wandering)
         self.menu.add_command(label="Give a snack", command=self.feed)
         self.menu.add_command(label="Play together", command=self.play)
         self.menu.add_command(label="Sleep / wake up", command=self.toggle_sleep)
@@ -186,18 +187,50 @@ class TokenWidget:
         self.menu.add_command(label="Close", command=self.close)
         root.bind_all("<Button-3>", self.show_menu)
         root.bind("<Escape>", lambda event: self.close())
-        self.avatar.bind("<Double-Button-1>", lambda event: self.manual_refresh())
-        self.avatar.bind("<Enter>", lambda event: self.set_hover(True))
-        self.avatar.bind("<Leave>", lambda event: self.set_hover(False))
-
-        for widget in (root, main, self.avatar, total_label):
-            widget.bind("<ButtonPress-1>", self.start_drag)
-            widget.bind("<B1-Motion>", self.drag)
-            widget.bind("<ButtonRelease-1>", self.stop_drag)
+        self.canvas.bind("<Double-Button-1>", lambda event: self.manual_refresh())
+        self.canvas.bind("<Enter>", lambda event: self.set_hover(True))
+        self.canvas.bind("<Leave>", lambda event: self.set_hover(False))
+        self.canvas.bind("<ButtonPress-1>", self.start_drag)
+        self.canvas.bind("<B1-Motion>", self.drag)
+        self.canvas.bind("<ButtonRelease-1>", self.stop_drag)
 
         root.after(0, self.refresh)
-        root.after(70, self.animate)
-        root.after(100, self.process_results)
+        root.after(28, self.animate)
+
+    def get_frame(self, appearance, direction, index, pose="walk"):
+        key = (appearance, direction, pose, index)
+        if key not in self.frame_cache:
+            filename = f"walk_{index:03d}.png" if pose == "walk" else f"{pose}.png"
+            path = resource_path(Path("cats") / appearance / direction / filename)
+            self.frame_cache[key] = tk.PhotoImage(file=str(path))
+        return self.frame_cache[key]
+
+    def load_config(self):
+        try:
+            with self.config_path.open(encoding="utf-8") as handle:
+                config = json.load(handle)
+            return config if isinstance(config, dict) else {}
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            return {}
+
+    def save_config(self):
+        try:
+            self.data_root.mkdir(parents=True, exist_ok=True)
+            with self.config_path.open("w", encoding="utf-8") as handle:
+                json.dump(
+                    {
+                        "appearance": self.appearance.get(),
+                        "topmost": self.topmost.get(),
+                        "wandering": self.wandering.get(),
+                    },
+                    handle,
+                    indent=2,
+                )
+        except OSError:
+            pass
+
+    def random_target(self):
+        return random.uniform(self.minimum_x, self.maximum_x)
 
     def refresh(self):
         if self.closed:
@@ -220,130 +253,139 @@ class TokenWidget:
             self.results.put(("error", str(error)))
 
     def process_results(self):
-        if self.closed:
-            return
         try:
             while True:
                 result = self.results.get_nowait()
                 self.loading = False
-                if result[0] == "error":
-                    self.total.set("Unavailable")
-                    self.total_font.configure(size=18)
-                    continue
-                total = f"{result[1]['totalTokens']:,}"
-                self.total.set(total)
-                self.total_font.configure(size=20 if len(total) <= 13 else 17)
+                self.total = f"{result[1]['totalTokens']:,}" if result[0] == "ok" else "Unavailable"
         except queue.Empty:
             pass
-        self.root.after(100, self.process_results)
+
+    def choose_behavior(self, now):
+        if not self.wandering.get():
+            self.behavior = "sit"
+            self.behavior_until = now + 10
+            return
+        self.behavior = random.choices(("walk", "sit", "sleep"), weights=(5, 4, 1))[0]
+        durations = {"walk": (6, 13), "sit": (5, 11), "sleep": (8, 16)}
+        self.behavior_until = now + random.uniform(*durations[self.behavior])
+        if self.behavior == "walk":
+            self.target_x = self.random_target()
+
+    def update_behavior(self, now, elapsed):
+        if self.behavior == "walk" and not self.wandering.get():
+            self.behavior = "sit"
+        walking = self.behavior == "walk" and self.wandering.get() and not self.hovering and not self.dragging and not self.action
+        if walking:
+            difference = self.target_x - self.x
+            if abs(difference) < 3:
+                self.target_x = self.random_target()
+                difference = self.target_x - self.x
+            self.direction = "right" if difference >= 0 else "left"
+            self.x += (1 if difference >= 0 else -1) * min(abs(difference), elapsed * 55)
+            rounded_x = round(self.x)
+            if rounded_x != self.last_geometry_x:
+                self.root.geometry(f"+{rounded_x}+{self.y}")
+                self.last_geometry_x = rounded_x
+        if now >= self.behavior_until and not self.action and not self.dragging:
+            self.choose_behavior(now)
+
+    def draw_overlays(self, mood, action_progress):
+        if mood == "sleepy":
+            self.canvas.create_text(194, 78, text="Z", fill="#b9b0ff", font=self.fonts["symbol"])
+            self.canvas.create_text(205, 67, text="z", fill="#ffe59a", font=self.fonts["fact"])
+        if mood == "think":
+            self.canvas.create_text(201, 81, text="?", fill="#ffe59a", font=self.fonts["symbol"])
+        if mood in ("pet", "grabbed"):
+            self.canvas.create_text(202, 85 - action_progress * 8, text="♥", fill="#ff9ebd", font=self.fonts["symbol"])
+        if mood == "excited":
+            self.canvas.create_text(198, 80, text="✦", fill="#ffe59a", font=self.fonts["symbol"])
+        if mood == "snack":
+            head_x = 188 if self.direction == "right" else 52
+            cookie_x = head_x + (18 if self.direction == "right" else -18) * (1 - action_progress)
+            cookie_y = 122 - action_progress * 7
+            radius = max(2, 6 - action_progress * 3)
+            self.canvas.create_oval(cookie_x - radius, cookie_y - radius, cookie_x + radius, cookie_y + radius, fill="#d99b5f", outline="#8b5737")
+            self.canvas.create_oval(cookie_x - 2, cookie_y - 2, cookie_x, cookie_y, fill="#5e3b32", outline="")
+        if mood == "play":
+            ball_x = 195 + (1 if self.direction == "right" else -1) * action_progress * 8
+            ball_y = 121 - abs(action_progress * 2 - 1) * 35
+            self.canvas.create_oval(ball_x - 6, ball_y - 6, ball_x + 6, ball_y + 6, fill="#ff9ebd", outline="#ffe59a", width=2)
 
     def animate(self):
         if self.closed:
             return
         now = time.monotonic()
-        if now >= self.next_blink:
-            self.blink_until = now + 0.14
-            self.next_blink = now + random.uniform(2.5, 5.5)
+        elapsed = min(now - self.last_frame, 0.25)
+        self.last_frame = now
+        self.process_results()
+        self.update_behavior(now, elapsed)
+
         if self.action and now >= self.action_until:
             self.action = None
+        if now >= self.next_thought and not self.sleeping and self.behavior != "sleep" and not self.action:
+            self.fact = random.choice(AI_FACTS)
+            self.thought_until = now + 8
+            self.next_thought = now + random.uniform(35, 65)
+        if self.thought_until and now >= self.thought_until:
+            self.thought_until = 0
+            self.fact = None
 
-        current_action = self.action
-        sleepy = self.sleeping or (
-            now - self.last_interaction >= 45 and not self.hovering and not current_action
-        )
+        sleepy = self.sleeping or self.behavior == "sleep"
         if self.dragging and self.drag_moved:
             mood = "grabbed"
-        elif current_action:
-            mood = current_action
+        elif self.action:
+            mood = self.action
         elif sleepy:
             mood = "sleepy"
         elif self.hovering:
             mood = "happy"
+        elif self.fact:
+            mood = "think"
         else:
             mood = "normal"
 
-        pointer_x, pointer_y = self.root.winfo_pointerxy()
-        relative_x = pointer_x - self.avatar.winfo_rootx() - 32
-        relative_y = pointer_y - self.avatar.winfo_rooty() - 32
-        look_x = max(-1.8, min(1.8, relative_x / 35))
-        look_y = max(-1.5, min(1.5, relative_y / 40))
+        walking = self.behavior == "walk" and self.wandering.get() and not self.hovering and not sleepy and not self.action and not self.dragging
+        if walking:
+            self.walk_phase = (self.walk_phase + elapsed) % 1
+        frame_index = int(self.walk_phase * WALK_FPS) % WALK_FPS if walking else 0
+        pose = "walk" if walking else "grabbed" if mood == "grabbed" else "sleep" if sleepy else "sit"
+        action_progress = 1 - (self.action_until - now) / self.action_duration if self.action else 0
 
-        if current_action == "play":
-            offset_x = math.sin(now * 8) * 2
-            offset_y = -abs(math.sin(now * 10)) * 4
-        elif current_action == "excited":
-            offset_x = 0
-            offset_y = -abs(math.sin(now * 12)) * 3
-        elif current_action == "pet":
-            offset_x = math.sin(now * 18) * 1.2
-            offset_y = -abs(math.sin(now * 9)) * 2.5
-        elif current_action == "snack":
-            offset_x = 0
-            offset_y = math.sin(now * 8) * 0.8
+        self.canvas.delete("all")
+        if self.hovering:
+            draw_bubble(self.canvas, f"Total AI token usage\n{self.total}", self.fonts["usage"], self.fonts["fact"], usage=True)
+        elif self.fact:
+            draw_bubble(self.canvas, f"Thinking about AI…\n{self.fact}", self.fonts["usage"], self.fonts["fact"])
+        image = self.get_frame(self.appearance.get(), self.direction, frame_index, pose)
+        self.canvas.create_image(120, 34, image=image, anchor="n")
+        self.draw_overlays(mood, action_progress)
+
+        if self.dragging or self.action or walking:
+            delay = round(1000 / WALK_FPS)
         elif sleepy:
-            offset_x = 0
-            offset_y = math.sin(now * 1.2) * 0.6
+            delay = 700
         elif self.hovering:
-            offset_x = 0
-            offset_y = math.sin(now * 6) * 1.8
+            delay = 200
         else:
-            offset_x = 0
-            offset_y = math.sin(now * 2.4) * 1.2
-        scale = 1 + math.sin(now * (10 if current_action == "snack" else 2.4)) * 0.015
-        heart_offset = (1.4 - (self.action_until - now)) * 7 if current_action == "pet" else None
-        action_progress = 1 - (self.action_until - now) / self.action_duration if current_action else 0
-
-        self.avatar.delete("all")
-        draw_avatar(
-            self.avatar,
-            look_x,
-            look_y,
-            blink=now < self.blink_until and mood == "normal",
-            mood=mood,
-            heart_offset=heart_offset,
-            action_progress=action_progress,
-        )
-        transform_avatar(self.avatar, scale, offset_x, offset_y)
-        self.update_wander(now, paused=sleepy or current_action in ("play", "snack"))
-        self.root.after(70, self.animate)
-
-    def update_wander(self, now, paused=False):
-        if paused or not self.wandering.get() or self.dragging:
-            self.wander_target = None
-            self.next_wander = now + 2
-            return
-        if now >= self.next_wander:
-            origin_x, origin_y = self.wander_origin
-            maximum_x = max(self.root.winfo_screenwidth() - self.root.winfo_width(), 0)
-            maximum_y = max(self.root.winfo_screenheight() - self.root.winfo_height(), 0)
-            self.wander_target = (
-                min(max(origin_x + random.randint(-28, 28), 0), maximum_x),
-                min(max(origin_y + random.randint(-20, 20), 0), maximum_y),
-            )
-            self.next_wander = now + random.uniform(4, 7)
-        if self.wander_target:
-            current_x, current_y = self.root.winfo_x(), self.root.winfo_y()
-            target_x, target_y = self.wander_target
-            difference_x, difference_y = target_x - current_x, target_y - current_y
-            if abs(difference_x) <= 1 and abs(difference_y) <= 1:
-                self.wander_target = None
-            else:
-                self.root.geometry(f"+{round(current_x + difference_x * 0.08)}+{round(current_y + difference_y * 0.08)}")
+            delay = 350
+        self.root.after(delay, self.animate)
 
     def start_action(self, action, duration):
-        now = time.monotonic()
         self.action = action
-        self.action_until = now + duration
+        self.action_until = time.monotonic() + duration
         self.action_duration = duration
         self.sleeping = False
-        self.last_interaction = now
-        self.next_blink = now + duration
 
     def set_hover(self, hovering):
         self.hovering = hovering
         if hovering:
             self.sleeping = False
-            self.last_interaction = time.monotonic()
+
+    def select_appearance(self, appearance):
+        self.appearance.set(appearance)
+        self.save_config()
+        self.start_action("excited", 1.2)
 
     def pet(self):
         self.start_action("pet", 1.4)
@@ -357,18 +399,20 @@ class TokenWidget:
     def toggle_sleep(self):
         self.sleeping = not self.sleeping
         self.action = None
-        self.last_interaction = time.monotonic()
 
     def toggle_topmost(self):
         self.root.attributes("-topmost", self.topmost.get())
+        self.save_config()
 
     def toggle_wandering(self):
-        self.wander_origin = (self.root.winfo_x(), self.root.winfo_y())
-        self.wander_target = None
-        self.next_wander = time.monotonic() + 2
+        if self.wandering.get():
+            self.behavior = "walk"
+            self.target_x = self.random_target()
+        else:
+            self.behavior = "sit"
+        self.save_config()
 
     def show_menu(self, event):
-        self.last_interaction = time.monotonic()
         try:
             self.menu.tk_popup(event.x_root, event.y_root)
         finally:
@@ -379,7 +423,6 @@ class TokenWidget:
         self.drag_moved = False
         self.action = None
         self.sleeping = False
-        self.last_interaction = time.monotonic()
         self.press_position = (event.x_root, event.y_root)
         self.drag_x = event.x_root - self.root.winfo_x()
         self.drag_y = event.y_root - self.root.winfo_y()
@@ -388,17 +431,20 @@ class TokenWidget:
         if abs(event.x_root - self.press_position[0]) > 3 or abs(event.y_root - self.press_position[1]) > 3:
             self.drag_moved = True
         if self.drag_moved:
-            self.root.geometry(f"+{event.x_root - self.drag_x}+{event.y_root - self.drag_y}")
+            self.x = event.x_root - self.drag_x
+            self.y = event.y_root - self.drag_y
+            self.root.geometry(f"+{round(self.x)}+{round(self.y)}")
 
     def stop_drag(self, event):
         if not self.dragging:
             return
         was_click = not self.drag_moved
         self.dragging = False
-        self.wander_origin = (self.root.winfo_x(), self.root.winfo_y())
-        self.wander_target = None
-        self.next_wander = time.monotonic() + 4
-        if was_click and event.widget is self.avatar:
+        self.y, self.minimum_x, self.maximum_x = taskbar_geometry()
+        self.x = max(self.minimum_x, min(self.maximum_x, self.x))
+        self.root.geometry(f"+{round(self.x)}+{self.y}")
+        self.target_x = self.random_target()
+        if was_click:
             self.pet()
 
     def close(self):
@@ -407,22 +453,23 @@ class TokenWidget:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Show a live Kimi Code token-count desktop widget.")
+    parser = argparse.ArgumentParser(description="Show a live Kimi Code token-count desktop pet.")
     parser.add_argument(
         "--root",
         type=Path,
         default=Path(os.environ.get("KIMI_CODE_HOME", Path.home() / ".kimi-code")),
     )
-    parser.add_argument("--refresh-seconds", type=int, default=15)
+    parser.add_argument("--refresh-seconds", type=int, default=60)
+    parser.add_argument("--appearance", choices=tuple(CATS))
     args = parser.parse_args()
-    if args.refresh_seconds < 5:
-        parser.error("--refresh-seconds must be at least 5")
+    if args.refresh_seconds < 15:
+        parser.error("--refresh-seconds must be at least 15")
 
     root = tk.Tk()
-    icon_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent / "assets")) / "token_widget.ico"
+    icon_path = resource_path("token_widget.ico")
     if icon_path.is_file():
         root.iconbitmap(default=str(icon_path))
-    TokenWidget(root, args.root.expanduser(), args.refresh_seconds)
+    TokenWidget(root, args.root.expanduser(), args.refresh_seconds, args.appearance)
     root.mainloop()
 
 

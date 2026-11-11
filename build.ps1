@@ -11,6 +11,7 @@ if (-not (Test-Path -LiteralPath $Python)) {
 if ($LASTEXITCODE -ne 0) { throw "Failed to install build dependencies." }
 
 $Icon = Join-Path $ProjectRoot "assets\token_widget.ico"
+$CatAssets = Join-Path $ProjectRoot "assets\cats"
 $VersionInfo = Join-Path $ProjectRoot "installer\version_info.txt"
 $Source = Join-Path $ProjectRoot "src\token_widget.py"
 
@@ -22,6 +23,7 @@ $Source = Join-Path $ProjectRoot "src\token_widget.py"
     --name "KimiTokenUsage" `
     --icon $Icon `
     --add-data "$Icon;." `
+    --add-data "$CatAssets;cats" `
     --version-file $VersionInfo `
     --distpath (Join-Path $ProjectRoot "dist") `
     --workpath (Join-Path $ProjectRoot "build") `

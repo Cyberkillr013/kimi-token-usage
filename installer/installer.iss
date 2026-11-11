@@ -1,7 +1,7 @@
 [Setup]
 AppId={{7F2E5A0D-51C4-4E5D-A6D4-6C6B2B3B44A1}
 AppName=Kimi Token Usage
-AppVersion=1.0.0
+AppVersion=1.2.0
 AppPublisher=Cyberkillr013
 AppPublisherURL=https://github.com/Cyberkillr013/kimi-token-usage
 AppSupportURL=https://github.com/Cyberkillr013/kimi-token-usage/issues
