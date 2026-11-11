@@ -27,21 +27,21 @@ CATS = {
 }
 
 AI_FACTS = (
-    "The word 'robot' comes from the Czech word 'robota', meaning forced labor.",
-    "The first neural network model, the perceptron, was described in 1957.",
-    "Token counts can differ between models because they split text differently.",
-    "Cached input tokens help models avoid processing the same context again.",
-    "The Turing Test was proposed by Alan Turing in 1950.",
-    "Neural networks learn by adjusting numbers called weights.",
-    "A transformer model uses attention to decide which tokens matter most.",
-    "AI can recognize patterns, but it does not experience the world like a person.",
-    "Training teaches a model patterns; inference is when it uses what it learned.",
-    "The term 'artificial intelligence' was coined at a workshop in 1956.",
-    "Embeddings turn words and other data into coordinates in a number space.",
-    "A model's context window is the amount of text it can consider at once.",
-    "Small models can sometimes outperform larger ones on specialized tasks.",
-    "Temperature controls how predictable or varied many AI responses are.",
-    "AI benchmarks measure specific skills, not the whole of intelligence.",
+    "The first neural network was described in 1957.",
+    "AI learns patterns by adjusting weights.",
+    "A context window is the text AI can consider at once.",
+    "Cached tokens help AI reuse earlier work.",
+    "The term AI was coined in 1956.",
+    "Alan Turing proposed his famous test in 1950.",
+    "Models split text into pieces called tokens.",
+    "Different models can count tokens differently.",
+    "Inference is when AI uses what it learned.",
+    "Embeddings turn words into number coordinates.",
+    "Temperature can make AI answers more varied.",
+    "Attention helps AI focus on important tokens.",
+    "Training adjusts a model's internal weights.",
+    "Small models can be great at special tasks.",
+    "AI benchmarks test skills, not consciousness.",
 )
 
 
@@ -119,6 +119,7 @@ class TokenWidget:
         self.sleeping = False
         self.total = "…"
         self.fact = None
+        self.thought_started = 0
         self.thought_until = 0
         self.walk_phase = 0
         self.direction = "right"
@@ -182,6 +183,7 @@ class TokenWidget:
         self.menu.add_checkbutton(label="Walk on the taskbar", variable=self.wandering, command=self.toggle_wandering)
         self.menu.add_command(label="Give a snack", command=self.feed)
         self.menu.add_command(label="Play together", command=self.play)
+        self.menu.add_command(label="Think of an AI fact", command=self.start_thought)
         self.menu.add_command(label="Lay down / stand up", command=self.toggle_lay)
         self.menu.add_command(label="Sleep / wake up", command=self.toggle_sleep)
         self.menu.add_command(label="Refresh now", command=self.manual_refresh)
@@ -213,6 +215,24 @@ class TokenWidget:
             path = resource_path(Path("cats") / appearance / direction / filename)
             self.frame_cache[key] = tk.PhotoImage(file=str(path))
         return self.frame_cache[key]
+
+    def get_bubble(self, name):
+        key = ("bubble", name)
+        if key not in self.frame_cache:
+            self.frame_cache[key] = tk.PhotoImage(file=str(resource_path(Path("bubbles") / name)))
+        return self.frame_cache[key]
+
+    def draw_thought_bubble(self, now):
+        elapsed = now - self.thought_started
+        if elapsed < 0.35:
+            image = self.get_bubble("small.png")
+            self.canvas.create_image(80, 65, image=image, anchor="nw")
+        elif elapsed < 0.7:
+            image = self.get_bubble("medium.png")
+            self.canvas.create_image(67, 51, image=image, anchor="nw")
+        else:
+            image = self.get_bubble(f"fact_{self.fact:02d}.png")
+            self.canvas.create_image(0, 0, image=image, anchor="nw")
 
     def load_config(self):
         try:
@@ -333,9 +353,7 @@ class TokenWidget:
         if self.action and now >= self.action_until:
             self.action = None
         if now >= self.next_thought and not self.sleeping and self.behavior != "sleep" and not self.action:
-            self.fact = random.choice(AI_FACTS)
-            self.thought_until = now + 8
-            self.next_thought = now + random.uniform(35, 65)
+            self.start_thought()
         if self.thought_until and now >= self.thought_until:
             self.thought_until = 0
             self.fact = None
@@ -349,7 +367,7 @@ class TokenWidget:
             mood = "sleepy"
         elif self.hovering:
             mood = "happy"
-        elif self.fact:
+        elif self.fact is not None:
             mood = "think"
         else:
             mood = "normal"
@@ -372,13 +390,15 @@ class TokenWidget:
         self.canvas.delete("all")
         if self.hovering:
             draw_bubble(self.canvas, f"Total AI token usage\n{self.total}", self.fonts["usage"], self.fonts["fact"], usage=True)
-        elif self.fact:
-            draw_bubble(self.canvas, f"Thinking about AI…\n{self.fact}", self.fonts["usage"], self.fonts["fact"])
         image = self.get_frame(self.appearance.get(), self.direction, frame_index, pose)
         self.canvas.create_image(120, 34, image=image, anchor="n")
         self.draw_overlays(mood, action_progress)
+        if not self.hovering and self.fact is not None:
+            self.draw_thought_bubble(now)
 
-        if self.dragging or self.action or walking:
+        if self.fact is not None and now - self.thought_started < 0.75:
+            delay = 50
+        elif self.dragging or self.action or walking:
             delay = round(1000 / WALK_FPS)
         elif sleepy:
             delay = 700
@@ -387,6 +407,16 @@ class TokenWidget:
         else:
             delay = 350
         self.root.after(delay, self.animate)
+
+    def start_thought(self):
+        now = time.monotonic()
+        self.fact = random.randrange(len(AI_FACTS))
+        self.thought_started = now
+        self.thought_until = now + 8
+        self.next_thought = now + random.uniform(35, 65)
+        self.sleeping = False
+        if self.behavior in ("lay", "sleep"):
+            self.behavior = "sit"
 
     def start_action(self, action, duration):
         self.action = action

@@ -4,7 +4,7 @@
   <img src="assets/token_widget.png" width="160" alt="Kimi Token Usage icon">
 </p>
 
-A standalone Windows desktop pet that shows your Kimi Code token usage. A cute pixel kitten walks along your taskbar at **35 FPS**, sits, lies down, sleeps, and occasionally thinks about random AI facts.
+A standalone Windows desktop pet that shows your Kimi Code token usage. A cute pixel kitten walks along your taskbar at **35 FPS**, sits, lies down, sleeps, and shares random AI facts in animated pixel-cloud thought bubbles.
 
 ## Download
 
@@ -29,6 +29,7 @@ The app installs only for the current Windows user and does not require administ
 - Animated sitting and sleeping states, plus a separate lying-down state.
 - Choose **Luna** (white), **Mochi** (golden), **Smokey** (black), or **Coco** (brown) from the right-click menu.
 - The cat turns to face its walking direction and alternates naturally between activities.
+- AI facts appear in a white pixel-cloud thought bubble that grows from a small puff to a larger puff and then the full cloud. Choose **Think of an AI fact** in the menu to trigger it manually.
 - Hover over the cat to see your total AI token usage. The bubble disappears when you move the pointer away.
 - Drag gently to pick the cat up; release to place it back on the taskbar.
 - Click the cat to pet it, or double-click to refresh its token total.
@@ -79,10 +80,17 @@ License: https://creativecommons.org/licenses/by/3.0/
 
 The artwork credit and source link are also available from the app's right-click menu.
 
+## Pixel font
+
+Fact bubbles use **Press Start 2P** by CodeMan38, licensed under the SIL Open Font License 1.1. The font and license are included in `assets/fonts/`.
+
+Font source: https://github.com/google/fonts/tree/main/ofl/pressstart2p
+
 ## Source layout
 
 - `src/token_widget.py`: the animated desktop pet and its interactions.
 - `src/token_usage.py`: local session discovery and token calculations.
 - `assets/cats/`: LPC pixel-art walk cycles, animated sitting/sleeping frames, and lying poses in both directions.
+- `assets/bubbles/`: animated thought puffs and pre-rendered pixel-font fact clouds.
 - `assets/`: the app icon.
 - `installer/`: Windows installer and executable version metadata.

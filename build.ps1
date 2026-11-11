@@ -12,6 +12,7 @@ if ($LASTEXITCODE -ne 0) { throw "Failed to install build dependencies." }
 
 $Icon = Join-Path $ProjectRoot "assets\token_widget.ico"
 $CatAssets = Join-Path $ProjectRoot "assets\cats"
+$BubbleAssets = Join-Path $ProjectRoot "assets\bubbles"
 $VersionInfo = Join-Path $ProjectRoot "installer\version_info.txt"
 $Source = Join-Path $ProjectRoot "src\token_widget.py"
 
@@ -24,6 +25,7 @@ $Source = Join-Path $ProjectRoot "src\token_widget.py"
     --icon $Icon `
     --add-data "$Icon;." `
     --add-data "$CatAssets;cats" `
+    --add-data "$BubbleAssets;bubbles" `
     --version-file $VersionInfo `
     --distpath (Join-Path $ProjectRoot "dist") `
     --workpath (Join-Path $ProjectRoot "build") `
